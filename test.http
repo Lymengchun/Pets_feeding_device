@@ -1,0 +1,14 @@
+GET  http://192.168.1.1/scan_ap
+
+###
+POST http://192.168.1.1/connect_ap
+content-type: application/json
+
+{
+    "ssid_ap": "private",
+    "pass_ap": "06042000"
+}
+
+###
+GET  http://192.168.1.1/status_ap
+content-type: application/json
