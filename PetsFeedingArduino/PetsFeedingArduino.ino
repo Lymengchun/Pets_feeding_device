@@ -2,6 +2,9 @@
 #include <ESP8266WebServer.h>
 #include <ArduinoJson.h>
 #include <FirebaseESP8266.h>
+#include <Servo.h>
+
+
 //#include "HX711.h"
 
 //HX711 scale;
@@ -14,6 +17,7 @@ ESP8266WebServer server(80);
 FirebaseAuth auth;
 FirebaseConfig config;
 FirebaseData fbdo;
+Servo myServo;
 // realtimeDB https://pets-feeding-backend-default-rtdb.asia-southeast1.firebasedatabase.app/
 // secret 7gWEOFwuvkjWfGkM7BXqw28fm9A9H9xe6np1xjjG
 // userUUID klsdjfalksdjfalksdf
@@ -22,7 +26,8 @@ unsigned long sendDataPrevMillis = 0;
 int intValue;
 float floatValue;
 bool signupOK = false;
-
+int dataChange = 0;
+unsigned long servoMillis = 0;
 void scanAP()
 {
   int number = WiFi.scanNetworks();
@@ -110,6 +115,8 @@ void setup()
   config.api_key = "AIzaSyB-PsV7BAiunqTRB8eTyL_mJxDJoLh2218";
   config.database_url = "https://pets-feeding-backend-default-rtdb.asia-southeast1.firebasedatabase.app/";
 
+  //Setup Servo
+  myServo.attach(2);
   if (!WiFi.isConnected())
   {
     WiFi.softAPConfig(local_ip, gateway, subnet);
@@ -129,15 +136,19 @@ void setup()
   //  scale.tare();             //Assuming there is no weight on the scale at start up, reset the scale to 0
   //
   //  Serial.println("Readings:");
+
+  servoMillis = millis();
 }
 
 void loop()
 {
+  
   server.handleClient();
   //  Serial.print("Reading: ");
   //  Serial.print(scale.get_units(), 1); //scale.get_units() returns a float
   //  Serial.print(" lbs");               //You can change this to kg but you'll need to refactor the calibration_factor
   //  Serial.println();
+
   if (!signupOK)
   {
     if (Firebase.signUp(&config, &auth, "", ""))
@@ -150,34 +161,42 @@ void loop()
       Serial.printf("%s\n", config.signer.signupError.message.c_str());
     }
   }
-  if ((millis() - sendDataPrevMillis > 10000 || sendDataPrevMillis == 0))
+  if ((millis() - sendDataPrevMillis > 1000 || sendDataPrevMillis == 0))
   {
     sendDataPrevMillis = millis();
     String prefix = "/FeedNow/";
-    if (Firebase.RTDB.getInt(&fbdo, prefix + "YbD9pFzWlAQhNMFhPtJRj782im23"))
+     
+    if (Firebase.RTDB.getInt(&fbdo,prefix + uuid))
     {
+ 
       if (fbdo.dataType() == "int")
       {
-        intValue = fbdo.intData();
-        Serial.println(intValue);
+      Serial.println(fbdo.intData());
+      
+      if(fbdo.intData() != dataChange){
+        if(dataChange != 0){
+            myServo.write(180);
+           
+          
+        }else{
+         dataChange = fbdo.intData();
+        }
+      }else{
+         dataChange = fbdo.intData();
       }
-    }
-    else
-    {
-      Serial.println(fbdo.errorReason());
-    }
-
-    if (Firebase.RTDB.getFloat(&fbdo, "/test/float"))
-    {
-      if (fbdo.dataType() == "float")
-      {
-        floatValue = fbdo.floatData();
-        Serial.println(floatValue);
-      }
-    }
-    else
-    {
+    
+       if((millis() - servoMillis) > 5000){
+              myServo.detach();  
+          }
+      
+      
+    }else{
       Serial.println(fbdo.errorReason());
     }
   }
+  
+   
+  }
+
+
 }
