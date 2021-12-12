@@ -52,7 +52,6 @@ float floatValue;
 bool signupOK = false;
 int dataChange = 0;
 unsigned long servoMillis = 0;
-
 void scanAP()
 {
   int number = WiFi.scanNetworks();
@@ -180,7 +179,6 @@ void setup()
 
 void loop()
 {
-
   server.handleClient();
   //  Serial.print("Reading: ");
   //  Serial.print(scale.get_units(), 1); //scale.get_units() returns a float
@@ -270,5 +268,8 @@ void loop()
         Serial.println("servo stop");
       }
     }
+  }
+  
+   
   }
 }
